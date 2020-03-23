@@ -37,7 +37,7 @@ abstract class AbstractRepository
     public function count(array $criteria)
     {
         $qb = $this->getQueryBuilder();
-        $qb->select('COUNT(*)');
+        $qb->select('COUNT(*)', 'count');
 
         $this->addCriterias($qb, $criteria);
 
@@ -161,13 +161,18 @@ abstract class AbstractRepository
     {
         foreach ($criteria as $field => $value) {
             if (method_exists($this, $field)) {
-                call_user_func(array($this, $field), array($qb, $value));
+                call_user_func(array($this, $field), $qb, $value);
                 continue;
             }
+            $sign = '=';
+            if(stripos($value, '!') === 0){
+                $sign = '<>';
+                $value = substr($value, 1);
+            }
             if (stripos($field, '.')) {
-                $qb->addWhere(sprintf('%s = :%s', $field, $field));
+                $qb->addWhere(sprintf('%s %s :%s', $field, $sign, $field));
             } else {
-                $qb->addWhere(sprintf('%s.%s = :%s', $qb->getAlias(), $field, $field));
+                $qb->addWhere(sprintf('%s.%s %s :%s', $qb->getAlias(), $field, $sign, $field));
             }
             $qb->setParameter($field, $value);
         }
