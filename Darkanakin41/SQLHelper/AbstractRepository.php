@@ -5,6 +5,7 @@ namespace Darkanakin41\SQLHelper;
 
 
 use ADOConnection;
+use Darkanakin41\SQLHelper\Query\AbstractCriteria;
 use Darkanakin41\SQLHelper\Query\QueryBuilder;
 use Exception;
 
@@ -162,6 +163,10 @@ abstract class AbstractRepository
         foreach ($criteria as $field => $value) {
             if (method_exists($this, $field)) {
                 call_user_func(array($this, $field), $qb, $value);
+                continue;
+            }
+            if($value instanceof AbstractCriteria){
+                $value->updateQueryBuilder($qb);
                 continue;
             }
             $sign = '=';
