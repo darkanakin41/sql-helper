@@ -10,8 +10,6 @@ use Exception;
 
 abstract class AbstractRepository
 {
-    protected static $baseAlias = 'ic';
-
     /**
      * @var ADOConnection the connection to the database
      */
@@ -29,6 +27,28 @@ abstract class AbstractRepository
     abstract public function getQueryBuilder();
 
     /**
+     * Count entries in the database based on given criterias
+     *
+     * @param array $criteria
+     *
+     * @return int
+     * @throws Exception
+     */
+    public function count(array $criteria)
+    {
+        $qb = $this->getQueryBuilder();
+        $qb->select('COUNT(*)');
+
+        $this->addCriterias($qb, $criteria);
+
+        $result = $this->getOneOrNullResult($qb);
+        if ($result === null) {
+            return 0;
+        }
+        return $result['count'];
+    }
+
+    /**
      * Find entries in the database based on given criterias
      *
      * @param array      $criteria
@@ -43,10 +63,7 @@ abstract class AbstractRepository
     {
         $qb = $this->getQueryBuilder();
 
-        foreach ($criteria as $field => $value) {
-            $qb->addWhere(sprintf('%s.%s = :%s', self::$baseAlias, $field, $field));
-            $qb->setParameter($field, $value);
-        }
+        $this->addCriterias($qb, $criteria);
 
         if ($limit !== null) {
             $qb->maxResults($limit);
@@ -77,10 +94,7 @@ abstract class AbstractRepository
     {
         $qb = $this->getQueryBuilder();
 
-        foreach ($criteria as $field => $value) {
-            $qb->addWhere(sprintf('%s.%s = :%s', self::$baseAlias, $field, $field));
-            $qb->setParameter($field, $value);
-        }
+        $this->addCriterias($qb, $criteria);
 
         $qb->maxResults(1);
         $qb->offset(0);
@@ -135,10 +149,27 @@ abstract class AbstractRepository
         }
 
         $iterator = $recordSet->getIterator();
-        do {
+        while ($iterator->valid()) {
             array_push($data, $iterator->current());
-        } while ($iterator->next() !== null);
+            $iterator->next();
+        }
 
         return $data;
+    }
+
+    protected function addCriterias(QueryBuilder $qb, $criteria)
+    {
+        foreach ($criteria as $field => $value) {
+            if (method_exists($this, $field)) {
+                call_user_func(array($this, $field), array($qb, $value));
+                continue;
+            }
+            if (stripos($field, '.')) {
+                $qb->addWhere(sprintf('%s = :%s', $field, $field));
+            } else {
+                $qb->addWhere(sprintf('%s.%s = :%s', $qb->getAlias(), $field, $field));
+            }
+            $qb->setParameter($field, $value);
+        }
     }
 }

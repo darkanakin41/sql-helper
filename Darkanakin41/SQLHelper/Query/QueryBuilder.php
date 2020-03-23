@@ -35,8 +35,22 @@ class QueryBuilder
      */
     private $offset = -1;
 
-    public function __construct()
+    /**
+     * @var string|null l'alias de la requete
+     */
+    private $alias;
+
+    public function __construct($alias = null)
     {
+        $this->alias = $alias;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getAlias()
+    {
+        return $this->alias;
     }
 
     /**
@@ -78,6 +92,9 @@ class QueryBuilder
     public function from($table, $alias = '')
     {
         $this->froms = array();
+        if (empty($alias) && !empty($this->alias)) {
+            $alias = $this->alias;
+        }
         $this->addFrom($table, $alias);
     }
 
@@ -213,11 +230,11 @@ class QueryBuilder
             array_push($sqlParts, 'ORDER BY', (string)$this->orderBy);
         }
 
-        if($this->maxResults > -1){
+        if ($this->maxResults > -1) {
             array_push($sqlParts, 'LIMIT', $this->maxResults);
         }
 
-        if($this->offset > -1){
+        if ($this->offset > -1) {
             array_push($sqlParts, 'OFFSET', $this->offset);
         }
 

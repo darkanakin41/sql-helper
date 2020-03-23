@@ -52,7 +52,7 @@ class From
      */
     public function addJoin($join)
     {
-        $this->joins[] = $join;
+        $this->joins[$join->getAlias()] = $join;
     }
 
     /**
